@@ -7,12 +7,6 @@ endif
 
 -include $(DEVKITARM)/ds_rules
 
-ifeq ($(DSI_SD),1)
-export DSI_SD_Flag := -DDSI_SD
-else
-export DSI_SD_Flag :=
-endif
-
 #---------------------------------------------------------------------------------
 # BUILD is the directory where object files & intermediate files will be placed
 # SOURCES is a list of directories containing source code
@@ -22,21 +16,22 @@ export TARGET		:= boot
 BUILD		:=	build
 SOURCES		:=	source source/patches 
 INCLUDES	:=	build
+SPECS		:=  specs
  
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH	:=	-mthumb -mthumb-interwork
+ARCH	:=	-mthumb-interwork
 
-CFLAGS	:=	-Wall -Wno-unused-but-set-variable -Os $(DSI_SD_Flag) \
-			-mcpu=arm7tdmi -mtune=arm7tdmi -fomit-frame-pointer \
+CFLAGS	:=	-g -Wall -O3\
+			-mcpu=arm7tdmi -mtune=arm7tdmi -fomit-frame-pointer\
 			-ffast-math \
 			$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DARM7
 
 ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-nostartfiles -T $(CURDIR)/../load.ld -g $(ARCH) -Wl,-Map,$(TARGET).map
+LDFLAGS	=	-specs=../$(SPECS)/load.specs -T ../$(SPECS)/load.ld -g $(ARCH) -mno-fpu -Wl,-Map,$(TARGET).map
 
 LIBS	:= -lnds7
 
@@ -84,19 +79,20 @@ export LD	:=	$(CC)
 #---------------------------------------------------------------------------------
 
 .PHONY: $(BUILD) clean
-
+ 
 #---------------------------------------------------------------------------------
-#ARM9 code (must be arm, not thumb):
-#it seems that -march=armv5te -mtune=arm946e-s causes freeze. I don't know why.
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
+	@make -C $(SPECS)
 	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
  
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) *.elf
-
+	@make -C $(SPECS) clean
+ 
+ 
 #---------------------------------------------------------------------------------
 else
  
@@ -108,10 +104,18 @@ DEPENDS	:=	$(OFILES:.o=.d)
 $(LOADBIN)	:	$(ARM7ELF)
 	@$(OBJCOPY) -O binary $< $@
 	@echo built ... $(notdir $@)
+	#cp -f $@ ../../mshl2wrap/source/arm9/data/
+	#cp -f $@ ../../reset_mse/source/arm9/data/
+	#cp -f $@ ../../favlauncher_bl/source/arm9/data/
+	#cp -f $@ ../../vhbootlib/source/arm9/data/
+	#cp -f $@ ../../iniclear/source/arm9/data/
+	#cp -f $@ ../../inilink/source/arm9/data/
 
 $(ARM7ELF)	:	$(OFILES)
-#	@echo linking $(notdir $@)
-#	@$(LD)  $(LDFLAGS) $(OFILES) $(LIBPATHS) $(LIBS) -o $@
+	@echo linking $(notdir $@)
+	@$(LD)  $(LDFLAGS) $(OFILES) $(LIBPATHS) $(LIBS) -o $@
+
+
  
 #---------------------------------------------------------------------------------------
 endif

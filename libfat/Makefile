@@ -6,16 +6,16 @@ export TOPDIR	:=	$(CURDIR)
  
 export LIBFAT_MAJOR	:= 1
 export LIBFAT_MINOR	:= 0
-export LIBFAT_PATCH	:= 10
+export LIBFAT_PATCH	:= 7
 
 export VERSTRING	:=	$(LIBFAT_MAJOR).$(LIBFAT_MINOR).$(LIBFAT_PATCH)
 
 
 default: release
 
-all: release dist
+all: release
 
-release: include/libfatversion.h nds-release gba-release cube-release wii-release
+release: include/libfatversion.h nds-release
 
 ogc-release: cube-release wii-release
 

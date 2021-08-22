@@ -1,43 +1,46 @@
+#---------------------------------------------------------------------------------
+.SUFFIXES:
+#---------------------------------------------------------------------------------
 ifeq ($(strip $(DEVKITARM)),)
 $(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM)
 endif
 
 include $(DEVKITARM)/ds_rules
 
-export TARGET		:=	loader_extlink
+export TARGET		:=	loader
+#$(shell basename $(CURDIR))
 export TOPDIR		:=	$(CURDIR)
+
+
+#---------------------------------------------------------------------------------
+# path to tools - this can be deleted if you set the path in windows
+#---------------------------------------------------------------------------------
 export PATH		:=	$(DEVKITARM)/bin:$(PATH)
 
-all: ../$(TARGET).nds
-.PHONY: clean
+.PHONY: $(TARGET).arm9
 
-clean:
-	rm -f $(TARGET).arm9 main.o .map
+#---------------------------------------------------------------------------------
+# main targets
+#---------------------------------------------------------------------------------
+all: $(TARGET).nds
 
-### final build script ###
-../$(TARGET).nds	:	$(TARGET).arm9
+#$(TARGET).ds.gba	: $(TARGET).nds
+
+#---------------------------------------------------------------------------------
+$(TARGET).nds	:	$(TARGET).arm9
 	ndstool	-c $(TARGET).nds -7 ../../arm7/arm7.bin -9 $(TARGET).arm9 -b $(TARGET).bmp "DScovered Alternative;General Extlink Wrapper"
-	mv -f	$(TARGET).nds ../
+	cp	$(TARGET).nds ../
 
-### compile main.c ###
-LIBDIRS	:=	$(LIBNDS)
-export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-			-I$(CURDIR)
-export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
-LIBS	:= ../../libprism/libprism.a -lnds9
-ARCH	:=	-mthumb -mthumb-interwork
-CFLAGS	:=	-Wall -O2 \
-			-march=armv5te -mtune=arm946e-s -fomit-frame-pointer \
-			-ffast-math -fdata-sections \
-			$(ARCH) -DARM9
-LDFLAGS	=	-s -specs=ds_arm9.specs $(ARCH) -Wl,--gc-sections -Wl,-Map,$(notdir $*.map)
-LDFLAGS	+=	-Wl,--section-start,.init=0x02000000
+#---------------------------------------------------------------------------------
+$(TARGET).arm9	: arm9/$(TARGET).elf
 
-$(TARGET).arm9: main.c
-	@echo Compiling...
-	@$(CC) $(CFLAGS) $(INCLUDE) -c -o main.o main.c
-	@echo Linking...
-	@$(CC) $(LDFLAGS) -o $(TARGET).arm9.elf main.o $(LIBPATHS) $(LIBS)
-	@$(OBJCOPY) -O binary $(TARGET).arm9.elf $(TARGET).arm9
-	@rm $(TARGET).arm9.elf
+#---------------------------------------------------------------------------------
+	
+#---------------------------------------------------------------------------------
+arm9/$(TARGET).elf:
+	$(MAKE) -C arm9
+
+#---------------------------------------------------------------------------------
+clean:
+	$(MAKE) -C arm9 clean
+	rm -f $(TARGET).ds.gba $(TARGET).nds $(TARGET).arm9 ttmenu.dat

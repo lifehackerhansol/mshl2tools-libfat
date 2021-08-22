@@ -26,7 +26,7 @@ LIB		:=	$(TOPDIR)/nds/lib
 #---------------------------------------------------------------------------------
 ARCH	:=	-mthumb -mthumb-interwork
 
-CFLAGS	:=	-Wall -O2 \
+CFLAGS	:=	-Wall -O3 \
 			-march=armv5te -mtune=arm946e-s -fomit-frame-pointer \
 			-ffast-math -fdata-sections \
 			$(ARCH)

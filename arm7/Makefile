@@ -22,9 +22,9 @@ DATA		:=
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH	:=	-mthumb -mthumb-interwork
+ARCH	:=	-mthumb-interwork
 
-CFLAGS	:=	-Wall -Os \
+CFLAGS	:=	-Wall -O3 \
 		-mcpu=arm7tdmi -mtune=arm7tdmi -fomit-frame-pointer \
 		-ffast-math \
 		$(ARCH)
@@ -34,7 +34,7 @@ CXXFLAGS	:=	$(CFLAGS)
 
 
 ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-specs=ds_arm7.specs -g $(ARCH) -Wl,-Map,$(notdir $*).map -Wl,--section-start,.init=0x037f8000
+LDFLAGS	=	-specs=ds_arm7.specs -g $(ARCH) -mno-fpu -Wl,-Map,$(notdir $*).map -Wl,--section-start,.init=0x037f8000
 
 LIBS	:= -lnds7
 

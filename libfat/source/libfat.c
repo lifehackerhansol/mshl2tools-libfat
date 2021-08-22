@@ -29,7 +29,6 @@
 #include <sys/iosupport.h>
 #include <unistd.h>
 #include <string.h>
-#include <stdio.h>
 
 #include "common.h"
 #include "partition.h"
@@ -62,9 +61,7 @@ static const devoptab_t dotab_fat = {
 	_FAT_statvfs_r,
 	_FAT_ftruncate_r,
 	_FAT_fsync_r,
-	NULL,	/* Device data */
-	NULL,
-	NULL
+	NULL	/* Device data */
 };
 
 bool fatMount (const char* name, const DISC_INTERFACE* interface, sec_t startSector, uint32_t cacheSize, uint32_t SectorsPerPage) {
@@ -72,7 +69,7 @@ bool fatMount (const char* name, const DISC_INTERFACE* interface, sec_t startSec
 	devoptab_t* devops;
 	char* nameCopy;
 
-	if(!name || strlen(name) > 8 || !interface)
+	if(!name || !interface)
 		return false;
 
 	if(!interface->startup())
@@ -80,12 +77,6 @@ bool fatMount (const char* name, const DISC_INTERFACE* interface, sec_t startSec
 
 	if(!interface->isInserted())
 		return false;
-
-	char devname[10];
-	strcpy(devname, name);
-	strcat(devname, ":");
-	if(FindDevice(devname) >= 0)
-		return true;
 
 	devops = _FAT_mem_allocate (sizeof(devoptab_t) + strlen(name) + 1);
 	if (!devops) {
@@ -128,7 +119,7 @@ void fatUnmount (const char* name) {
 		return;
 	}
 
-	// Perform a quick check to make sure we're dealing with a FAT...ntrolled device
+	// Perform a quick check to make sure we're dealing with a libfat controlled device
 	if (devops->open_r != dotab_fat.open_r) {
 		return;
 	}
@@ -156,7 +147,6 @@ bool fatInit (uint32_t cacheSize, bool setAsDefaultDevice) {
 			// The first device to successfully mount is set as the default
 			if (defaultDevice < 0) {
 				defaultDevice = i;
-				break; /// don't try to mound sd:/ if fat:/ was mounted successfully.
 			}
 		}
 	}
@@ -213,7 +203,7 @@ void fatGetVolumeLabel (const char* name, char *label) {
 		return;
 
 	namelen = strlen(name);
-	buf=(char*)_FAT_mem_allocate(sizeof(char)*namelen+2);
+	buf=(char*)_FAT_mem_allocate(sizeof(char)*namelen+2);	
 	strcpy(buf,name);
 
 	if (name[namelen-1] == '/') {
@@ -230,13 +220,13 @@ void fatGetVolumeLabel (const char* name, char *label) {
 
 	for(i=0;buf[i]!='\0' && buf[i]!=':';i++);  
 	if (!devops || strncasecmp(buf,devops->name,i)) {
-		_FAT_mem_free(buf);
+		free(buf);
 		return;
 	}
 
-	_FAT_mem_free(buf);
+	free(buf);
 
-	// Perform a quick check to make sure we're dealing with a FAT...ntrolled device
+	// Perform a quick check to make sure we're dealing with a libfat controlled device
 	if (devops->open_r != dotab_fat.open_r) {
 		return;
 	}	

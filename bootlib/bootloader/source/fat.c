@@ -414,7 +414,7 @@ u32 getBootFileCluster (const char* bootName)
 	int firstSector = 0;
 	bool notFound = false;
 	bool found = false;
-//	int maxSectors;
+	int maxSectors;
 	u32 wrkDirCluster = discRootDirClus;
 	u32 wrkDirSector = 0;
 	int wrkDirOffset = 0;
@@ -430,11 +430,7 @@ u32 getBootFileCluster (const char* bootName)
 		return (CLUSTER_FREE);
 	}
 	
-	char *ptr = (char*)bootName;
-	while (*ptr != '.') ptr++;
-	int namelen = ptr - bootName;
-
-//	maxSectors = (wrkDirCluster == FAT16_ROOT_DIR_CLUSTER ? (discData - discRootDir) : discSecPerClus);
+	maxSectors = (wrkDirCluster == FAT16_ROOT_DIR_CLUSTER ? (discData - discRootDir) : discSecPerClus);
 	// Scan Dir for correct entry
 	firstSector = discRootDir;
 	CARD_ReadSector (firstSector + wrkDirSector, globalBuffer);
@@ -469,15 +465,14 @@ u32 getBootFileCluster (const char* bootName)
 		{
 			found = false;
 		}
-		if(namelen<8 && dir.name[namelen]!=0x20) found = false;
-		for (nameOffset = 0; nameOffset < namelen && found; nameOffset++)
+		for (nameOffset = 0; nameOffset < 8 && found; nameOffset++)
 		{
 			if (ucase(dir.name[nameOffset]) != bootName[nameOffset])
 				found = false;
 		}
 		for (nameOffset = 0; nameOffset < 3 && found; nameOffset++)
 		{
-			if (ucase(dir.ext[nameOffset]) != bootName[nameOffset+namelen+1])
+			if (ucase(dir.ext[nameOffset]) != bootName[nameOffset+9])
 				found = false;
 		}
 		if (dir.name[0] == FILE_LAST)
@@ -525,7 +520,6 @@ u32 fileRead (char* buffer, u32 cluster, u32 startOffset, u32 length)
 
 	// Load sector buffer for new position in file
 	CARD_ReadSector( curSect + FAT_ClustToSect(cluster), globalBuffer);
-	curSect++;
 
 	// Number of bytes needed to read to align with a sector
 	beginBytes = (BYTES_PER_SECTOR < length + curByte ? (BYTES_PER_SECTOR - curByte) : length);
@@ -537,27 +531,17 @@ u32 fileRead (char* buffer, u32 cluster, u32 startOffset, u32 length)
 	}
 
 	// Read in all the 512 byte chunks of the file directly, saving time
-	for ( chunks = ((int)length - beginBytes) / BYTES_PER_SECTOR; chunks > 0;)
+	for ( chunks = ((int)length - beginBytes) / BYTES_PER_SECTOR; chunks > 0; chunks--)
 	{
-		int sectorsToRead;
-
-		// Move to the next cluster if necessary
+		curSect++;
 		if (curSect >= discSecPerClus)
 		{
 			curSect = 0;
 			cluster = FAT_NextCluster (cluster);
 		}
 
-		// Calculate how many sectors to read (read a maximum of discSecPerClus at a time)
-		sectorsToRead = discSecPerClus - curSect;
-		if(chunks < sectorsToRead)
-			sectorsToRead = chunks;
-
-		// Read the sectors
-		CARD_ReadSectors(curSect + FAT_ClustToSect(cluster), sectorsToRead, buffer + dataPos);
-		chunks  -= sectorsToRead;
-		curSect += sectorsToRead;
-		dataPos += BYTES_PER_SECTOR * sectorsToRead;
+		CARD_ReadSector( curSect + FAT_ClustToSect( cluster), buffer + dataPos);
+		dataPos += BYTES_PER_SECTOR;
 	}
 
 	// Take care of any bytes left over before end of read
@@ -565,6 +549,7 @@ u32 fileRead (char* buffer, u32 cluster, u32 startOffset, u32 length)
 	{
 
 		// Update the read buffer
+		curSect++;
 		curByte = 0;
 		if (curSect >= discSecPerClus)
 		{

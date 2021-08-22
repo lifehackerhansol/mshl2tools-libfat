@@ -1,1 +1,0 @@
-#define LIBFAT 1
